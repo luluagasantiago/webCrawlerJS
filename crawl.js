@@ -1,5 +1,10 @@
+const jsdom = require("jsdom");
+const { JSDOM } = jsdom;
+const fs = require('fs').promises;
+
 module.exports = {
-    normalizeURL 
+    normalizeURL,
+   // getURLsFromHTML
 }
 
 function normalizeURL(rawURL){
@@ -13,3 +18,20 @@ function normalizeURL(rawURL){
     }
     return url;
 }
+
+
+// for now takes an html file and logs the links
+ async function links_from_html(){ 
+    let links;
+    try{
+        const dom = await JSDOM.fromFile('index.html');
+        const links = dom.window.document.links; // "Hello world"
+        for(l of links){
+            console.log(l.toString());
+        }
+     } catch (error){
+        console.error("Error reading file:", error);
+     }
+}
+
+links_from_html();
