@@ -1,3 +1,4 @@
+const { link, createWriteStream } = require("fs");
 const jsdom = require("jsdom");
 const { JSDOM } = jsdom;
 const fs = require('fs').promises;
@@ -26,45 +27,92 @@ function isRelativURL(url){
 }
 
 // for now takes an html file and logs the links
- async function links_from_html(htmlBody, baseURL){ 
-    let links;
+ async function links_from_html(htmlLink, baseURL){ 
+    //console.log(`READING: ${htmlLink}`);
+    let dom;
+    try{
+        let url = htmlLink;
+        dom = await JSDOM.fromURL(url);
+    }catch(err){
+        throw new Error(`Was not possible to read ${htmlLink}}`);
+
+    }
+    const links_list = [];
     try{
         //const dom = await JSDOM.fromFile(htmlBody);
-        const dom = await JSDOM.fromURL(htmlBody);
-        const links = dom.window.document.links; // "Hello world"
-        for(l of links){
-            //dom.window.document.links[0].href
-            //console.log(l.toString());
-            //let url = new URL(l.toString());
+        const links = dom.window.document.links; 
+        // "Hello world"
+        
+        for(let l of links){
             let url = normalizeURL(l.toString());
             if(isRelativURL(url)){
-                console.log(`${baseURL}${url}`);
+                links_list.push(`https://${baseURL}${url}/`)
+                //console.log(`${baseURL}${url}`);
             }else{
-                console.log(url);
+                links_list.push(`https://${url}/`);
+                //console.log(url);
             }
             
         }
      } catch (error){
-        console.error("Error reading file:", error);
+         // 
+         console.error("Error reading file:", error);
+       throw new Error(error);
+
      }
+     if(links_list.length >=1){
+        console.log(`Succesfully retrived links from ${htmlLink}`)
+     }
+     return links_list;
 }
 
-async function crawlPage(url){
-   const response = await fetch(url, {
-    method: 'GET', 
-    mode: 'cors',
-    headers: {
-        'Content-type': 'text/html',
+async function crawlPage(baseURL, currentURL, pages){
+    let currentURLobj = new URL(currentURL);
+    let baseURLobj = new URL(baseURL);
+    if(currentURLobj.hostname != baseURLobj.hostname && currentURLobj.hostname != `www.${baseURLobj.hostname}` ){
+        return pages;
+    }
+    let normalizeCurrentUrl = normalizeURL(currentURL);
+
+    if(pages[normalizeCurrentUrl]){
+        pages[normalizeCurrentUrl]++;
+        return pages;
     }
 
-   })
-    //console.log(response.headers.Content_Type);
-    if(response.ok){
-        console.log("Response OK!")
-        const data = await response.text();
-        console.log(data); 
+    if(baseURL == currentURL){
+        pages[normalizeCurrentUrl] = 0;
     }else{
-        throw new Error("Network response was not OK")
+        pages[normalizeCurrentUrl] = 1;
+    }
+
+    try{
+        const links = await links_from_html(currentURL, baseURL);
+        //console.log(links);
+        
+        let store_pages = pages;
+        for(let link of links){
+            //console.log(link)
+            store_pages = await crawlPage(baseURL, `${link}`, store_pages);
+            
+        }
+        //console.log(store_pages)
+        return store_pages;
+        //console.log(pages);
+    }catch(err){
+        console.log(errr);
+        throw new Error(`Could not read links from ${currentURL}`);
+        
     }
 
 }
+
+
+async function crawlURLandPrint(url){
+    let pg1 = await crawlPage(url, url, {});
+    console.log(pg1);
+    
+}
+
+
+crawlURLandPrint('https://wagslane.dev/')
+
