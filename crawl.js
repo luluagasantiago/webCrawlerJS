@@ -86,18 +86,13 @@ async function crawlPage(baseURL, currentURL, pages){
     }
 
     try{
-        const links = await links_from_html(currentURL, baseURL);
-        //console.log(links);
-        
+        const links = await links_from_html(currentURL, baseURL);        
         let store_pages = pages;
         for(let link of links){
-            //console.log(link)
             store_pages = await crawlPage(baseURL, `${link}`, store_pages);
             
         }
-        //console.log(store_pages)
         return store_pages;
-        //console.log(pages);
     }catch(err){
         console.log(errr);
         throw new Error(`Could not read links from ${currentURL}`);
@@ -105,14 +100,3 @@ async function crawlPage(baseURL, currentURL, pages){
     }
 
 }
-
-
-async function crawlURLandPrint(url){
-    let pg1 = await crawlPage(url, url, {});
-    console.log(pg1);
-    
-}
-
-
-crawlURLandPrint('https://wagslane.dev/')
-
